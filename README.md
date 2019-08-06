@@ -1,5 +1,29 @@
 # youtube-transcript-scraper
 
+**Fork**
+
+Fork replacing the `txt` output by a `json` file for each video.
+
+```json
+[
+    {
+        "offset": "00:06", 
+        "text": "HE'S ALRIGHT. HE'S FINE. JUST GET HIM DRESSED."
+    }, 
+    {
+        "offset": "00:09", 
+        "text": "I THINK HE LOOKS GREAT."
+    },
+    ...
+]
+```
+
+Steps:
+- adding the id of the video in `videoIds.csv`
+- running `python captions.py`
+
+**Origin**
+
 ## description
 Since YouTube does not provide automatically generated transcripts via its API and normal scraping does not work with YT's ajaxy interface, this script uses browser automation to click through the YouTube web interface and download the transcript file.
 
