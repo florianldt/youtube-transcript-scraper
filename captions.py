@@ -1,14 +1,15 @@
 # modify these values
-filename = 'videolist_zembla_273_2018_05_25-09_17_02.tab'			# filname with video ids
+filename = 'videoIds.csv'			# filname with video ids
 colname = 'videoId'													# column storing video ids
 delimiter = '\t'													# delimiter, e.g. ',' for CSV or '\t' for TAB
-waittime = 10														# seconds browser waits before giving up
+waittime = 4														# seconds browser waits before giving up
 sleeptime = [5,15]													# random seconds range before loading next video id
 headless = True														# select True if you want the browser window to be invisible (but not inaudible)
 
 #do not modify below
 from time import sleep
 import csv
+import json
 import random
 import os.path
 from selenium import webdriver
@@ -22,73 +23,85 @@ from selenium.webdriver.firefox.options import Options
 def gettranscript(videoid):
 
 	# check if transcript file already exists	
-	writefilename = 'subtitles/transcript_' + videoid + '.txt'
-	if os.path.isfile(writefilename):
-		msg = 'transcript file already exists'
-		return msg
+    writefilename = 'subtitles/transcript_' + videoid + '.json'
+    if os.path.isfile(writefilename):
+        msg = 'transcript file already exists'
+        return msg
 
-	sleep(random.uniform(sleeptime[0],sleeptime[1]))
+    sleep(random.uniform(sleeptime[0],sleeptime[1]))
 
-	options = Options()
-	options.add_argument("--headless")
+    options = Options()
+    options.add_argument("--headless")
 
 	# Create a new instance of the Firefox driver
-	if headless:
-		driver = webdriver.Firefox(firefox_options=options)
-	else:
-		driver = webdriver.Firefox()
+    if headless:
+        driver = webdriver.Firefox(firefox_options=options)
+    else:
+        driver = webdriver.Firefox()
 
 	# navigate to video
-	driver.get("https://www.youtube.com/watch?v="+videoid)
+    driver.get("https://www.youtube.com/watch?v="+videoid)
 
-	try:
-	    element = WebDriverWait(driver, waittime).until(EC.presence_of_element_located((By.CSS_SELECTOR, "yt-icon-button.dropdown-trigger > button:nth-child(1)")))
-	except:
-		msg = 'could not find options button'
-		driver.quit()
-		return msg
+    try:
+        element = WebDriverWait(driver, waittime).until(EC.presence_of_element_located((By.CSS_SELECTOR, "yt-icon-button.dropdown-trigger > button:nth-child(1)")))
+    except:
+        msg = 'could not find options button'
+        driver.quit()
+        return msg
 
-	try:
-		element.click()
-	except:
-		msg = 'could not click'
-		driver.quit()
-		return msg
+    try:
+        element.click()
+    except:
+        msg = 'could not click'
+        driver.quit()
+        return msg
 
-	try:
-	    element = WebDriverWait(driver, waittime).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#items > ytd-menu-service-item-renderer:nth-child(2) > yt-formatted-string"))) #items > ytd-menu-service-item-renderer:nth-child(2) > yt-formatted-string
-	except:
-		msg = 'could not find transcript in options menu'
-		driver.quit()
-		return msg
+    try:
+        element = WebDriverWait(driver, waittime).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#items > ytd-menu-service-item-renderer:nth-child(2) > paper-item"))) #items > ytd-menu-service-item-renderer:nth-child(2) > yt-formatted-string
+    except:
+        msg = 'could not find transcript in options menu'
+        driver.quit()
+        return msg
 
-	try:
-		element.click()
-	except:
-		msg = 'could not click'
-		driver.quit()
-		return msg
+    try:
+        element.click()
+    except:
+        msg = 'could not click'
+        driver.quit()
+        return msg
 
-	try:
-	    element = WebDriverWait(driver, waittime).until(EC.presence_of_element_located((By.CSS_SELECTOR, "ytd-transcript-body-renderer.style-scope")))
-	except:
-		msg = 'could not find transcript text'
-		driver.quit()
-		return msg
+    try:
+        print("tedst element")
+        element = WebDriverWait(driver, waittime).until(EC.presence_of_element_located((By.CSS_SELECTOR, "ytd-transcript-body-renderer.style-scope")))
+    except:
+        msg = 'could not find transcript text'
+        driver.quit()
+        return msg
 
-	#print(element.text)
 
-	file = open(writefilename,"w")
-	file.write(element.text)
-	file.close() 
+    print("tedst offset")
 
-	driver.quit()
+    offsets = driver.find_elements_by_css_selector(".cue-group-start-offset")
+    subtitles = driver.find_elements_by_css_selector(".cue.style-scope.ytd-transcript-body-renderer")
+    
+    jsonDict = []
+    for i in range(0, len(offsets) - 1):
+        sub = {
+            "offset": offsets[i].text,
+            "text": subtitles[i].text,
+        }
+        jsonDict.append(sub)
+    
+    file = open(writefilename,"w")
+    file.write(json.dumps(jsonDict))
+    file.close() 
+    driver.quit()
 
-	return 'ok'
+    return 'ok'
 
 # log function
 def logit(id,msg):
-	logwriter.writerow({'id':id,'msg':msg})
+    logwriter.writerow({'id':id,'msg':msg})
 	
 
 # prepare log file
@@ -102,7 +115,7 @@ csvreader = csv.DictReader(csvread, delimiter=delimiter, quoting=csv.QUOTE_NONE)
 rowcount = len(open(filename).readlines())
 
 for row in csvreader:
-	msg = gettranscript(row[colname])
-	logit(row[colname],msg)
-	rowcount -= 1
-	print(str(rowcount) + " :  " + row[colname] + " : " + msg)
+    msg = gettranscript(row[colname])
+    logit(row[colname],msg)
+    rowcount -= 1
+    print(str(rowcount) + " :  " + row[colname] + " : " + msg)
