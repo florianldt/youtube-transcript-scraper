@@ -1,17 +1,14 @@
 # modify these values
-filename = 'videoIds.csv'			# filname with video ids
-colname = 'videoId'													# column storing video ids
-delimiter = '\t'													# delimiter, e.g. ',' for CSV or '\t' for TAB
 waittime = 4														# seconds browser waits before giving up
 sleeptime = [5,15]													# random seconds range before loading next video id
 headless = True														# select True if you want the browser window to be invisible (but not inaudible)
 
 #do not modify below
 from time import sleep
-import csv
 import json
 import random
-import os.path
+import sys
+import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
@@ -21,15 +18,6 @@ from selenium.webdriver.firefox.options import Options
 
 
 def gettranscript(videoid):
-
-	# check if transcript file already exists	
-    writefilename = 'subtitles/transcript_' + videoid + '.json'
-    if os.path.isfile(writefilename):
-        msg = 'transcript file already exists'
-        return msg
-
-    sleep(random.uniform(sleeptime[0],sleeptime[1]))
-
     options = Options()
     options.add_argument("--headless")
 
@@ -47,39 +35,37 @@ def gettranscript(videoid):
     except:
         msg = 'could not find options button'
         driver.quit()
-        return msg
+        return False, msg
 
     try:
         element.click()
     except:
         msg = 'could not click'
         driver.quit()
-        return msg
+        return False, msg
 
     try:
         element = WebDriverWait(driver, waittime).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#items > ytd-menu-service-item-renderer:nth-child(2) > paper-item"))) #items > ytd-menu-service-item-renderer:nth-child(2) > yt-formatted-string
     except:
         msg = 'could not find transcript in options menu'
         driver.quit()
-        return msg
+        return False, msg
 
     try:
         element.click()
     except:
         msg = 'could not click'
         driver.quit()
-        return msg
+        return False, msg
 
     try:
-        print("tedst element")
         element = WebDriverWait(driver, waittime).until(EC.presence_of_element_located((By.CSS_SELECTOR, "ytd-transcript-body-renderer.style-scope")))
     except:
         msg = 'could not find transcript text'
         driver.quit()
-        return msg
+        return False, msg
 
 
-    print("tedst offset")
 
     offsets = driver.find_elements_by_css_selector(".cue-group-start-offset")
     subtitles = driver.find_elements_by_css_selector(".cue.style-scope.ytd-transcript-body-renderer")
@@ -91,31 +77,30 @@ def gettranscript(videoid):
             "text": subtitles[i].text,
         }
         jsonDict.append(sub)
-    
-    file = open(writefilename,"w")
-    file.write(json.dumps(jsonDict))
-    file.close() 
+
     driver.quit()
 
-    return 'ok'
+    return True, jsonDict
 
-# log function
-def logit(id,msg):
-    logwriter.writerow({'id':id,'msg':msg})
-	
+videoId = sys.argv[1]
+tmpFileName = "tmp_" + videoId + ".json"
+success, result = gettranscript(videoId)
+dict = {}
+if success == True:
+    dict = {
+        "success": success,
+        "subtitles": result
+    }
+else: 
+    dict = {
+        "success": success,
+        "msg": result
+    }
 
-# prepare log file
-logwrite = open('captions.log','w',newline='\n')
-logwriter = csv.DictWriter(logwrite, fieldnames=['id','msg'])
-logwriter.writeheader()
-
-# read CSV file
-csvread = open(filename, newline='\n')
-csvreader = csv.DictReader(csvread, delimiter=delimiter, quoting=csv.QUOTE_NONE)
-rowcount = len(open(filename).readlines())
-
-for row in csvreader:
-    msg = gettranscript(row[colname])
-    logit(row[colname],msg)
-    rowcount -= 1
-    print(str(rowcount) + " :  " + row[colname] + " : " + msg)
+tmpDir = "tmp/"
+if not os.path.exists(tmpDir):
+    os.makedirs(tmpDir)
+file = open(tmpDir+ tmpFileName,"w")
+file.write(json.dumps(dict))
+file.close() 
+print("-- Done --")
