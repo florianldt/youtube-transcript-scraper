@@ -2,25 +2,18 @@
 
 *Fork*
 
-Fork replacing the `txt` output by a `json` file for each video.
+Fork enabling the subtitles to be fetched using a RESTful API:
 
-```json
-[
-    {
-        "offset": "00:06", 
-        "text": "HE'S ALRIGHT. HE'S FINE. JUST GET HIM DRESSED."
-    }, 
-    {
-        "offset": "00:09", 
-        "text": "I THINK HE LOOKS GREAT."
-    },
-    ...
-]
-```
+- Endpoint: `http://localhost:8080/subtitles/{video_id}`
+- Example: `http://localhost:8080/subtitles/vkDRCMd_s90`
 
-Steps:
-- adding the id of the video in `videoIds.csv`
-- running `python captions.py`
+- Success (`200 OK`):
+
+![success](media/success.png)
+
+- Error (`500 Internal Server Error`):
+
+![error](media/error.png)
 
 ___
 
