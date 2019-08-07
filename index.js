@@ -21,7 +21,7 @@ app.get("/subtitles/:videoId", (req, res) => {
 
             if (err) throw err;
             let json = JSON.parse(data);
-            
+
             if (json["success"] === true) {
                 res.status(200).json(json["subtitles"]);
             } else {
@@ -31,7 +31,7 @@ app.get("/subtitles/:videoId", (req, res) => {
 
             try {
                 fs.unlinkSync(path);
-                console.log(path + 'removed');
+                console.log(path + ' removed');
             } catch(err) {
                 console.error(err);
             }
